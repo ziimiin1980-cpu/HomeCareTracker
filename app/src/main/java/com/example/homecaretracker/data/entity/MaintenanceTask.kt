@@ -25,5 +25,6 @@ data class MaintenanceTask(
     val description: String? = null,
     val intervalDays: Int,
     val nextDueDate: Long,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val notificationsEnabled: Boolean = false
 )

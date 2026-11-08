@@ -251,6 +251,11 @@ class HomeCareDatabaseTest {
             "INSERT INTO appliances (id, name, category) VALUES (1, 'Старый прибор', 'Дом')"
         )
         oldDatabase.execSQL(
+            "INSERT INTO maintenance_tasks " +
+                "(id, applianceId, title, intervalDays, nextDueDate, isActive) " +
+                "VALUES (1, 1, 'Старая задача', 30, 1800000000000, 1)"
+        )
+        oldDatabase.execSQL(
             "INSERT INTO maintenance_history (applianceId, taskTitle, completedAt) " +
                 "VALUES (1, 'Старая задача', 1700000000000)"
         )
@@ -261,11 +266,18 @@ class HomeCareDatabaseTest {
             context,
             HomeCareDatabase::class.java,
             databaseName
-        ).addMigrations(HomeCareDatabase.MIGRATION_1_2).build()
+        ).addMigrations(
+            HomeCareDatabase.MIGRATION_1_2,
+            HomeCareDatabase.MIGRATION_2_3
+        ).build()
         try {
             val record = migratedDatabase.maintenanceHistoryDao().getById(1L)
             assertEquals("Старый прибор", record?.applianceName)
             assertEquals("Старая задача", record?.taskTitle)
+            assertEquals(
+                false,
+                migratedDatabase.maintenanceTaskDao().getById(1L)?.notificationsEnabled
+            )
         } finally {
             migratedDatabase.close()
             context.deleteDatabase(databaseName)

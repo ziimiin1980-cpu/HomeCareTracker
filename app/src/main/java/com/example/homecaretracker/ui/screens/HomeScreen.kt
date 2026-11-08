@@ -9,15 +9,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.homecaretracker.data.entity.MaintenanceTask
@@ -25,6 +37,7 @@ import com.example.homecaretracker.ui.components.ApplianceErrorBanner
 import com.example.homecaretracker.util.formatUtcDate
 import com.example.homecaretracker.util.toUtcDate
 import com.example.homecaretracker.viewmodel.HomeDashboardUiState
+import com.example.homecaretracker.ui.theme.AppThemeMode
 import java.time.LocalDate
 import java.time.ZoneOffset
 
@@ -35,29 +48,42 @@ fun HomeScreen(
     onAddTask: () -> Unit,
     onOpenMaintenance: () -> Unit,
     onOpenHistory: () -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    themeMode: AppThemeMode,
+    onThemeModeChanged: (AppThemeMode) -> Unit
 ) {
     val today = LocalDate.now(ZoneOffset.UTC)
+    var showThemePicker by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    "Добро пожаловать",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "Обзор",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            IconButton(onClick = { showThemePicker = true }) {
+                Icon(Icons.Filled.Settings, contentDescription = "Настройки темы")
+            }
+        }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                "HomeCareTracker",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                "Добро пожаловать!",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                "Заботьтесь о доме без лишних хлопот.",
-                style = MaterialTheme.typography.bodyLarge,
+                "HomeCareTracker · забота о доме без лишних хлопот.",
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -82,6 +108,7 @@ fun HomeScreen(
                         )
                         StatisticCard("Выполнено", state.completedCount, Modifier.weight(1f))
                     }
+
                 }
                 Text(
                     "Ближайшее обслуживание",
@@ -122,6 +149,35 @@ fun HomeScreen(
                             Text("История")
                         }
                     }
+                    if (showThemePicker) {
+                        AlertDialog(
+                            onDismissRequest = { showThemePicker = false },
+                            title = { Text("Внешний вид") },
+                            text = {
+                                Column {
+                                    AppThemeMode.entries.forEach { mode ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(mode.label, modifier = Modifier.weight(1f))
+                                            RadioButton(
+                                                selected = themeMode == mode,
+                                                modifier = Modifier.testTag("theme_${mode.name}"),
+                                                onClick = {
+                                                    onThemeModeChanged(mode)
+                                                    showThemePicker = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showThemePicker = false }) { Text("Готово") }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -152,8 +208,12 @@ private fun StatisticCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(value.toString(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                value.toString(),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(title, style = MaterialTheme.typography.labelLarge)
         }
     }
 }

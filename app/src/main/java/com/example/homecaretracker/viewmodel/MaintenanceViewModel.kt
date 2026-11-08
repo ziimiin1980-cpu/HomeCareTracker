@@ -8,6 +8,7 @@ import com.example.homecaretracker.data.entity.MaintenanceHistory
 import com.example.homecaretracker.data.entity.MaintenanceTask
 import com.example.homecaretracker.data.repository.ApplianceRepository
 import com.example.homecaretracker.data.repository.MaintenanceTaskRepository
+import com.example.homecaretracker.notifications.MaintenanceNotificationManager
 import com.example.homecaretracker.util.nextDueDateAfterCompletion
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -31,7 +32,8 @@ data class MaintenanceUiState(
 
 class MaintenanceViewModel(
     private val taskRepository: MaintenanceTaskRepository,
-    private val applianceRepository: ApplianceRepository
+    private val applianceRepository: ApplianceRepository,
+    private val notificationManager: MaintenanceNotificationManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MaintenanceUiState())
     val uiState: StateFlow<MaintenanceUiState> = _uiState.asStateFlow()
@@ -64,9 +66,13 @@ class MaintenanceViewModel(
         }
         performOperation(onSuccess = onSaved) {
             if (task.id == 0L) {
-                taskRepository.add(task)
-            } else if (taskRepository.update(task) == 0) {
-                throw IllegalStateException("Задача больше не существует.")
+                val taskId = taskRepository.add(task)
+                notificationManager.schedule(task.copy(id = taskId))
+            } else {
+                if (taskRepository.update(task) == 0) {
+                    throw IllegalStateException("Задача больше не существует.")
+                }
+                notificationManager.schedule(task)
             }
         }
     }
@@ -76,14 +82,17 @@ class MaintenanceViewModel(
             if (taskRepository.delete(taskId) == 0) {
                 throw IllegalStateException("Задача больше не существует.")
             }
+            notificationManager.cancel(taskId)
         }
     }
 
     fun setTaskActive(task: MaintenanceTask, isActive: Boolean) {
         performOperation {
-            if (taskRepository.update(task.copy(isActive = isActive)) == 0) {
+            val updatedTask = task.copy(isActive = isActive)
+            if (taskRepository.update(updatedTask) == 0) {
                 throw IllegalStateException("Задача больше не существует.")
             }
+            notificationManager.schedule(updatedTask)
         }
     }
 
@@ -106,9 +115,11 @@ class MaintenanceViewModel(
                 description = task.description,
                 completedAt = completedAt
             )
-            if (!taskRepository.complete(task.copy(nextDueDate = nextDueDate), history)) {
+            val updatedTask = task.copy(nextDueDate = nextDueDate, isActive = true)
+            if (!taskRepository.complete(updatedTask, history)) {
                 throw IllegalStateException("Задача больше не существует.")
             }
+            notificationManager.schedule(updatedTask)
             _uiState.update {
                 it.copy(operationMessage = "Обслуживание записано в историю.")
             }
@@ -174,12 +185,17 @@ class MaintenanceViewModel(
 
     class Factory(
         private val taskRepository: MaintenanceTaskRepository,
-        private val applianceRepository: ApplianceRepository
+        private val applianceRepository: ApplianceRepository,
+        private val notificationManager: MaintenanceNotificationManager
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MaintenanceViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return MaintenanceViewModel(taskRepository, applianceRepository) as T
+                return MaintenanceViewModel(
+                    taskRepository,
+                    applianceRepository,
+                    notificationManager
+                ) as T
             }
             throw IllegalArgumentException("Unsupported ViewModel class: ${modelClass.name}")
         }

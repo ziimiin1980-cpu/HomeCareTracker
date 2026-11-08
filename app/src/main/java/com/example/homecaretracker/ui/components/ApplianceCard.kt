@@ -3,12 +3,23 @@ package com.example.homecaretracker.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Kitchen
+import androidx.compose.material.icons.filled.LocalLaundryService
+import androidx.compose.material.icons.filled.Microwave
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -31,15 +42,25 @@ fun ApplianceCard(
         )
     ) {
         Row(
-            modifier = Modifier.padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(18.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
-            Text(
-                text = "⌂",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Icon(
+                    imageVector = categoryIcon(appliance.category),
+                    contentDescription = appliance.category,
+                    modifier = Modifier.padding(14.dp).size(26.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     text = appliance.name,
                     style = MaterialTheme.typography.titleMedium,
@@ -62,6 +83,23 @@ fun ApplianceCard(
                     )
                 }
             }
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
+}
+
+private fun categoryIcon(category: String) = when {
+    category.contains("Стиральная", ignoreCase = true) ||
+        category.contains("Посудомоечная", ignoreCase = true) ->
+        Icons.Filled.LocalLaundryService
+    category.contains("Кондиционер", ignoreCase = true) -> Icons.Filled.AcUnit
+    category.contains("Телевизор", ignoreCase = true) -> Icons.Filled.Tv
+    category.contains("Пылесос", ignoreCase = true) -> Icons.Filled.Build
+    category.contains("Духовой", ignoreCase = true) -> Icons.Filled.Microwave
+    category.contains("Холодильник", ignoreCase = true) -> Icons.Filled.Kitchen
+    else -> Icons.Filled.Build
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -23,6 +24,7 @@ import com.example.homecaretracker.data.database.HomeCareDatabase
 import com.example.homecaretracker.data.repository.ApplianceRepository
 import com.example.homecaretracker.data.repository.MaintenanceHistoryRepository
 import com.example.homecaretracker.data.repository.MaintenanceTaskRepository
+import com.example.homecaretracker.notifications.MaintenanceNotificationManager
 import com.example.homecaretracker.ui.components.HomeCareBottomBar
 import com.example.homecaretracker.ui.screens.ApplianceDetailScreen
 import com.example.homecaretracker.ui.screens.ApplianceFormScreen
@@ -33,13 +35,19 @@ import com.example.homecaretracker.ui.screens.MaintenanceTaskFormScreen
 import com.example.homecaretracker.ui.screens.HistoryScreen
 import com.example.homecaretracker.ui.screens.HomeScreen
 import com.example.homecaretracker.ui.screens.MaintenanceScreen
+import com.example.homecaretracker.ui.theme.AppThemeMode
 import com.example.homecaretracker.viewmodel.ApplianceViewModel
 import com.example.homecaretracker.viewmodel.HomeDashboardViewModel
 import com.example.homecaretracker.viewmodel.HistoryViewModel
 import com.example.homecaretracker.viewmodel.MaintenanceViewModel
 
 @Composable
-fun HomeCareApp() {
+fun HomeCareApp(
+    notificationTaskId: Long? = null,
+    onNotificationTaskHandled: () -> Unit = {},
+    themeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    onThemeModeChanged: (AppThemeMode) -> Unit = {}
+) {
     val navController = rememberNavController()
     val applicationContext = LocalContext.current.applicationContext
     val database = remember(applicationContext) {
@@ -54,6 +62,9 @@ fun HomeCareApp() {
     val historyRepository = remember(database) {
         MaintenanceHistoryRepository(database.maintenanceHistoryDao())
     }
+    val notificationManager = remember(applicationContext) {
+        MaintenanceNotificationManager(applicationContext)
+    }
     val applianceViewModel: ApplianceViewModel = viewModel(
         factory = remember(applianceRepository) {
             ApplianceViewModel.Factory(applianceRepository)
@@ -61,8 +72,12 @@ fun HomeCareApp() {
     )
     val applianceState by applianceViewModel.uiState.collectAsState()
     val maintenanceViewModel: MaintenanceViewModel = viewModel(
-        factory = remember(taskRepository, applianceRepository) {
-            MaintenanceViewModel.Factory(taskRepository, applianceRepository)
+        factory = remember(taskRepository, applianceRepository, notificationManager) {
+            MaintenanceViewModel.Factory(
+                taskRepository,
+                applianceRepository,
+                notificationManager
+            )
         }
     )
     val maintenanceState by maintenanceViewModel.uiState.collectAsState()
@@ -91,6 +106,15 @@ fun HomeCareApp() {
                 navDestination.route?.startsWith("maintenance/") == true)
         } == true
     } ?: HomeCareDestination.HOME
+
+    LaunchedEffect(notificationTaskId) {
+        notificationTaskId?.let { taskId ->
+            navController.navigate(MaintenanceRoutes.detail(taskId)) {
+                launchSingleTop = true
+            }
+            onNotificationTaskHandled()
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -131,7 +155,9 @@ fun HomeCareApp() {
                     onOpenHistory = {
                         navController.navigate(HomeCareDestination.HISTORY.route)
                     },
-                    onRetry = dashboardViewModel::retryLoading
+                    onRetry = dashboardViewModel::retryLoading,
+                    themeMode = themeMode,
+                    onThemeModeChanged = onThemeModeChanged
                 )
             }
             composable(HomeCareDestination.APPLIANCES.route) {

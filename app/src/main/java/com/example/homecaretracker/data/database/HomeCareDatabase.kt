@@ -19,7 +19,7 @@ import com.example.homecaretracker.data.entity.MaintenanceTask
         MaintenanceTask::class,
         MaintenanceHistory::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class HomeCareDatabase : RoomDatabase() {
@@ -50,6 +50,15 @@ abstract class HomeCareDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE maintenance_tasks " +
+                        "ADD COLUMN notificationsEnabled INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
         @Volatile
         private var instance: HomeCareDatabase? = null
 
@@ -59,7 +68,7 @@ abstract class HomeCareDatabase : RoomDatabase() {
                     context.applicationContext,
                     HomeCareDatabase::class.java,
                     DATABASE_NAME
-                ).addMigrations(MIGRATION_1_2)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }

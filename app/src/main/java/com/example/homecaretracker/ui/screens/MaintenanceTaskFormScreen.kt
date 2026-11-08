@@ -1,5 +1,11 @@
 package com.example.homecaretracker.ui.screens
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -24,12 +31,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.example.homecaretracker.data.entity.Appliance
 import com.example.homecaretracker.data.entity.MaintenanceTask
 import com.example.homecaretracker.ui.components.ApplianceErrorBanner
@@ -61,9 +71,22 @@ fun MaintenanceTaskFormScreen(
         )
     }
     var isActive by remember(task?.id) { mutableStateOf(task?.isActive ?: true) }
+    var notificationsEnabled by remember(task?.id) {
+        mutableStateOf(task?.notificationsEnabled ?: true)
+    }
     var submitted by remember(task?.id) { mutableStateOf(false) }
     var applianceMenuExpanded by remember { mutableStateOf(false) }
     var datePickerOpen by remember { mutableStateOf(false) }
+    var permissionExplanationOpen by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var notificationPermissionGranted by remember {
+        mutableStateOf(hasNotificationPermission(context))
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        notificationPermissionGranted = granted
+    }
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = nextDueDate)
     val selectedAppliance = appliances.firstOrNull { it.id == applianceId }
     val parsedInterval = interval.toIntOrNull()
@@ -162,6 +185,40 @@ fun MaintenanceTaskFormScreen(
                 Text("Задача активна")
                 Switch(checked = isActive, onCheckedChange = { isActive = it })
             }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Напоминать об обслуживании")
+                    Text(
+                        "Уведомление в день обслуживания около 09:00.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = { enabled ->
+                        notificationsEnabled = enabled
+                        if (enabled && !notificationPermissionGranted) {
+                            permissionExplanationOpen = true
+                        }
+                    }
+                )
+            }
+            if (notificationsEnabled && !notificationPermissionGranted) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "Разрешите уведомления в Android, чтобы получать напоминания.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    TextButton(onClick = { permissionExplanationOpen = true }) {
+                        Text("Предоставить разрешение")
+                    }
+                }
+            }
             state.operationError?.let {
                 ApplianceErrorBanner(it, onDismiss = onErrorDismissed)
             }
@@ -189,7 +246,8 @@ fun MaintenanceTaskFormScreen(
                                 description = description.trim().ifEmpty { null },
                                 intervalDays = validInterval,
                                 nextDueDate = nextDueDate,
-                                isActive = isActive
+                                isActive = isActive,
+                                notificationsEnabled = notificationsEnabled
                             )
                         )
                     },
@@ -224,4 +282,38 @@ fun MaintenanceTaskFormScreen(
             DatePicker(state = datePickerState)
         }
     }
+
+    if (permissionExplanationOpen) {
+        AlertDialog(
+            onDismissRequest = { permissionExplanationOpen = false },
+            title = { Text("Напоминания об обслуживании") },
+            text = {
+                Text(
+                    "Разрешите уведомления, чтобы HomeCareTracker напомнил вам " +
+                        "об обслуживании техники в выбранный день."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    permissionExplanationOpen = false
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }) { Text("Продолжить") }
+            },
+            dismissButton = {
+                TextButton(onClick = { permissionExplanationOpen = false }) {
+                    Text("Не сейчас")
+                }
+            }
+        )
+    }
+}
+
+private fun hasNotificationPermission(context: Context): Boolean {
+    return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
 }

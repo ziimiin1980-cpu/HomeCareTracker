@@ -72,10 +72,25 @@ fun HistoryScreen(
                 ApplianceErrorBanner(state.loadError)
                 OutlinedButton(onClick = onRetry) { Text("Повторить") }
             }
-            state.records.isEmpty() -> Text(
-                "Выполненные обслуживания появятся здесь.",
-                style = MaterialTheme.typography.bodyLarge
-            )
+            state.records.isEmpty() -> Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("История пока пуста", style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        "После выполнения задачи запись появится здесь и останется доступной.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             else -> {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Устройство", style = MaterialTheme.typography.labelLarge)
@@ -165,7 +180,7 @@ private fun HistoryCard(record: MaintenanceHistory, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(

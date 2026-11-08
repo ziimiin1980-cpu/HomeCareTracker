@@ -9,12 +9,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -167,7 +171,7 @@ private fun MaintenanceTaskCard(
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isOverdue) {
                 MaterialTheme.colorScheme.errorContainer
@@ -180,7 +184,37 @@ private fun MaintenanceTaskCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(task.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    task.title,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = if (isOverdue) {
+                        MaterialTheme.colorScheme.errorContainer
+                    } else {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    }
+                ) {
+                    Text(
+                        text = if (isOverdue) "Просрочено" else "Активна",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isOverdue) {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        }
+                    )
+                }
+            }
             Text(applianceName, color = MaterialTheme.colorScheme.primary)
             task.description?.takeIf(String::isNotBlank)?.let { Text(it) }
             Text(
@@ -202,7 +236,14 @@ private fun MaintenanceTaskCard(
                     )
                 }
                 if (onComplete != null) {
-                    OutlinedButton(onClick = onComplete) { Text("Выполнено") }
+                    OutlinedButton(onClick = onComplete) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 6.dp)
+                        )
+                        Text("Выполнено")
+                    }
                 }
             }
         }
