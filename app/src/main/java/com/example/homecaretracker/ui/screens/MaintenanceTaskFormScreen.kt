@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
@@ -35,9 +36,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.homecaretracker.data.entity.Appliance
@@ -59,25 +63,25 @@ fun MaintenanceTaskFormScreen(
     onCancel: () -> Unit,
     onErrorDismissed: () -> Unit
 ) {
-    var applianceId by remember(task?.id) { mutableStateOf(task?.applianceId) }
-    var title by remember(task?.id) { mutableStateOf(task?.title.orEmpty()) }
-    var description by remember(task?.id) { mutableStateOf(task?.description.orEmpty()) }
-    var interval by remember(task?.id) {
+    var applianceId by rememberSaveable(task?.id) { mutableStateOf(task?.applianceId) }
+    var title by rememberSaveable(task?.id) { mutableStateOf(task?.title.orEmpty()) }
+    var description by rememberSaveable(task?.id) { mutableStateOf(task?.description.orEmpty()) }
+    var interval by rememberSaveable(task?.id) {
         mutableStateOf(task?.intervalDays?.toString().orEmpty())
     }
-    var nextDueDate by remember(task?.id) {
+    var nextDueDate by rememberSaveable(task?.id) {
         mutableStateOf(
             task?.nextDueDate ?: LocalDate.now(ZoneOffset.UTC).toUtcMillis()
         )
     }
-    var isActive by remember(task?.id) { mutableStateOf(task?.isActive ?: true) }
-    var notificationsEnabled by remember(task?.id) {
+    var isActive by rememberSaveable(task?.id) { mutableStateOf(task?.isActive ?: true) }
+    var notificationsEnabled by rememberSaveable(task?.id) {
         mutableStateOf(task?.notificationsEnabled ?: true)
     }
-    var submitted by remember(task?.id) { mutableStateOf(false) }
-    var applianceMenuExpanded by remember { mutableStateOf(false) }
-    var datePickerOpen by remember { mutableStateOf(false) }
-    var permissionExplanationOpen by remember { mutableStateOf(false) }
+    var submitted by rememberSaveable(task?.id) { mutableStateOf(false) }
+    var applianceMenuExpanded by rememberSaveable { mutableStateOf(false) }
+    var datePickerOpen by rememberSaveable { mutableStateOf(false) }
+    var permissionExplanationOpen by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     var notificationPermissionGranted by remember {
         mutableStateOf(hasNotificationPermission(context))
@@ -143,6 +147,7 @@ fun MaintenanceTaskFormScreen(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Название обслуживания *") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 isError = titleError,
                 supportingText = if (titleError) {
                     { Text("Введите название задачи.") }
@@ -153,7 +158,8 @@ fun MaintenanceTaskFormScreen(
                 onValueChange = { description = it; onErrorDismissed() },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Описание") },
-                minLines = 2
+                minLines = 2,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
             )
             OutlinedTextField(
                 value = interval,
@@ -164,6 +170,10 @@ fun MaintenanceTaskFormScreen(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Периодичность, дней *") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
                 isError = intervalError,
                 supportingText = if (intervalError) {
                     { Text("Укажите положительное число дней.") }

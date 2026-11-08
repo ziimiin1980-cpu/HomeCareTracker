@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -54,133 +55,147 @@ fun HomeScreen(
 ) {
     val today = LocalDate.now(ZoneOffset.UTC)
     var showThemePicker by remember { mutableStateOf(false) }
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            "Добро пожаловать",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Обзор",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    IconButton(onClick = { showThemePicker = true }) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Настройки темы")
+                    }
+                }
                 Text(
-                    "Добро пожаловать",
+                    "HomeCareTracker · забота о доме без лишних хлопот.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    "Обзор",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
             }
-            IconButton(onClick = { showThemePicker = true }) {
-                Icon(Icons.Filled.Settings, contentDescription = "Настройки темы")
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                "HomeCareTracker · забота о доме без лишних хлопот.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
         when {
-            state.isLoading -> CircularProgressIndicator()
-            state.loadError != null -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ApplianceErrorBanner(state.loadError)
-                OutlinedButton(onClick = onRetry) { Text("Повторить") }
+            state.isLoading -> item {
+                CircularProgressIndicator(modifier = Modifier.padding(vertical = 24.dp))
+            }
+            state.loadError != null -> item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ApplianceErrorBanner(state.loadError)
+                    OutlinedButton(onClick = onRetry) { Text("Повторить") }
+                }
             }
             else -> {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatisticCard("Устройств", state.applianceCount, Modifier.weight(1f))
-                        StatisticCard("Активных задач", state.activeTaskCount, Modifier.weight(1f))
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            StatisticCard("Устройств", state.applianceCount, Modifier.weight(1f))
+                            StatisticCard("Активных задач", state.activeTaskCount, Modifier.weight(1f))
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            StatisticCard(
+                                "Просрочено",
+                                state.overdueTaskCount,
+                                Modifier.weight(1f),
+                                isWarning = state.overdueTaskCount > 0
+                            )
+                            StatisticCard("Выполнено", state.completedCount, Modifier.weight(1f))
+                        }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatisticCard(
-                            "Просрочено",
-                            state.overdueTaskCount,
-                            Modifier.weight(1f),
-                            isWarning = state.overdueTaskCount > 0
-                        )
-                        StatisticCard("Выполнено", state.completedCount, Modifier.weight(1f))
-                    }
-
                 }
-                Text(
-                    "Ближайшее обслуживание",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
+                item {
+                    Text(
+                        "Ближайшее обслуживание",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
                 if (state.upcomingTasks.isEmpty()) {
-                    Text("Активных задач пока нет.")
+                    item { Text("Активных задач пока нет.") }
                 } else {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(state.upcomingTasks, key = MaintenanceTask::id) { task ->
-                            UpcomingTaskCard(
-                                task = task,
-                                applianceName = state.applianceNames[task.applianceId]
-                                    ?: "Устройство удалено",
-                                isOverdue = task.nextDueDate.toUtcDate().isBefore(today)
+                    items(
+                        items = state.upcomingTasks,
+                        key = MaintenanceTask::id
+                    ) { task ->
+                        UpcomingTaskCard(
+                            task = task,
+                            applianceName = state.applianceNames[task.applianceId]
+                                ?: "Устройство удалено",
+                            isOverdue = task.nextDueDate.toUtcDate().isBefore(today),
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = tween(180),
+                                placementSpec = tween(180),
+                                fadeOutSpec = tween(120)
+                            )
+                        )
+                    }
+                }
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(onClick = onAddAppliance, modifier = Modifier.weight(1f)) {
+                                Text("Добавить технику")
+                            }
+                            OutlinedButton(onClick = onAddTask, modifier = Modifier.weight(1f)) {
+                                Text("Создать задачу")
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            OutlinedButton(onClick = onOpenMaintenance, modifier = Modifier.weight(1f)) {
+                                Text("Все задачи")
+                            }
+                            OutlinedButton(onClick = onOpenHistory, modifier = Modifier.weight(1f)) {
+                                Text("История")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (showThemePicker) {
+        AlertDialog(
+            onDismissRequest = { showThemePicker = false },
+            title = { Text("Внешний вид") },
+            text = {
+                Column {
+                    AppThemeMode.entries.forEach { mode ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(mode.label, modifier = Modifier.weight(1f))
+                            RadioButton(
+                                selected = themeMode == mode,
+                                modifier = Modifier.testTag("theme_${mode.name}"),
+                                onClick = {
+                                    onThemeModeChanged(mode)
+                                    showThemePicker = false
+                                }
                             )
                         }
                     }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Button(onClick = onAddAppliance, modifier = Modifier.weight(1f)) {
-                            Text("Добавить технику")
-                        }
-                        OutlinedButton(onClick = onAddTask, modifier = Modifier.weight(1f)) {
-                            Text("Создать задачу")
-                        }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedButton(onClick = onOpenMaintenance, modifier = Modifier.weight(1f)) {
-                            Text("Все задачи")
-                        }
-                        OutlinedButton(onClick = onOpenHistory, modifier = Modifier.weight(1f)) {
-                            Text("История")
-                        }
-                    }
-                    if (showThemePicker) {
-                        AlertDialog(
-                            onDismissRequest = { showThemePicker = false },
-                            title = { Text("Внешний вид") },
-                            text = {
-                                Column {
-                                    AppThemeMode.entries.forEach { mode ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(mode.label, modifier = Modifier.weight(1f))
-                                            RadioButton(
-                                                selected = themeMode == mode,
-                                                modifier = Modifier.testTag("theme_${mode.name}"),
-                                                onClick = {
-                                                    onThemeModeChanged(mode)
-                                                    showThemePicker = false
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            },
-                            confirmButton = {
-                                TextButton(onClick = { showThemePicker = false }) { Text("Готово") }
-                            }
-                        )
-                    }
-                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showThemePicker = false }) { Text("Готово") }
             }
-        }
+        )
     }
 }
 
@@ -193,7 +208,7 @@ private fun StatisticCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = if (isWarning) {
                 MaterialTheme.colorScheme.errorContainer
@@ -222,11 +237,12 @@ private fun StatisticCard(
 private fun UpcomingTaskCard(
     task: MaintenanceTask,
     applianceName: String,
-    isOverdue: Boolean
+    isOverdue: Boolean,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        modifier = modifier.fillMaxWidth().animateContentSize(),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = if (isOverdue) {
                 MaterialTheme.colorScheme.errorContainer

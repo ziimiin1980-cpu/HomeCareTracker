@@ -113,7 +113,7 @@ private fun ErrorContent(
 private fun EmptyAppliancesContent(onAddClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
@@ -153,7 +153,8 @@ private fun ApplianceItems(
         items(appliances, key = Appliance::id) { appliance ->
             ApplianceCard(
                 appliance = appliance,
-                onClick = { onApplianceClick(appliance.id) }
+                onClick = { onApplianceClick(appliance.id) },
+                modifier = Modifier.animateItem()
             )
         }
     }

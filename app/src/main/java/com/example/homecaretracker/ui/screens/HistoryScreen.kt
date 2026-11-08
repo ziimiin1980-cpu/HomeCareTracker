@@ -1,5 +1,7 @@
 package com.example.homecaretracker.ui.screens
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,9 +29,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.homecaretracker.data.entity.MaintenanceHistory
 import com.example.homecaretracker.ui.components.ApplianceErrorBanner
@@ -44,8 +48,8 @@ fun HistoryScreen(
     state: HistoryUiState,
     onRetry: () -> Unit
 ) {
-    var selectedApplianceId by remember { mutableStateOf<Long?>(null) }
-    var selectedPeriodDays by remember { mutableIntStateOf(0) }
+    var selectedApplianceId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var selectedPeriodDays by rememberSaveable { mutableIntStateOf(0) }
     var applianceMenuExpanded by remember { mutableStateOf(false) }
     var selectedRecord by remember { mutableStateOf<MaintenanceHistory?>(null) }
     val applianceOptions = remember(state.records) {
@@ -99,7 +103,9 @@ fun HistoryScreen(
                             Text(
                                 selectedApplianceId?.let { id ->
                                     applianceOptions.firstOrNull { it.first == id }?.second
-                                } ?: "Все устройства"
+                                } ?: "Все устройства",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                         DropdownMenu(
@@ -115,7 +121,9 @@ fun HistoryScreen(
                             )
                             applianceOptions.forEach { (id, name) ->
                                 DropdownMenuItem(
-                                    text = { Text(name) },
+                                    text = {
+                                        Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    },
                                     onClick = {
                                         selectedApplianceId = id
                                         applianceMenuExpanded = false
@@ -147,7 +155,15 @@ fun HistoryScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(filteredRecords, key = MaintenanceHistory::id) { record ->
-                            HistoryCard(record) { selectedRecord = record }
+                            HistoryCard(
+                                record = record,
+                                onClick = { selectedRecord = record },
+                                modifier = Modifier.animateItem(
+                                    fadeInSpec = tween(180),
+                                    placementSpec = tween(180),
+                                    fadeOutSpec = tween(120)
+                                )
+                            )
                         }
                     }
                 }
@@ -176,11 +192,15 @@ fun HistoryScreen(
 }
 
 @Composable
-private fun HistoryCard(record: MaintenanceHistory, onClick: () -> Unit) {
+private fun HistoryCard(
+    record: MaintenanceHistory,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        modifier = modifier.fillMaxWidth().animateContentSize(),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(

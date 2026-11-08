@@ -1,5 +1,8 @@
 package com.example.homecaretracker.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -75,14 +78,16 @@ fun MaintenanceScreen(
         state.operationError?.let {
             ApplianceErrorBanner(it, onDismiss = onErrorDismissed)
         }
-        state.operationMessage?.let { message ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(message, color = MaterialTheme.colorScheme.primary)
-                TextButton(onClick = onErrorDismissed) { Text("Закрыть") }
+        AnimatedVisibility(visible = state.operationMessage != null) {
+            state.operationMessage?.let { message ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(message, color = MaterialTheme.colorScheme.primary)
+                    TextButton(onClick = onErrorDismissed) { Text("Закрыть") }
+                }
             }
         }
         when {
@@ -115,7 +120,12 @@ fun MaintenanceScreen(
                             isOverdue = true,
                             onClick = { onTaskClick(task.id) },
                             onToggle = { onToggle(task, it) },
-                            onComplete = { onComplete(task.id) }
+                            onComplete = { onComplete(task.id) },
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = tween(180),
+                                placementSpec = tween(180),
+                                fadeOutSpec = tween(120)
+                            )
                         )
                     }
                 }
@@ -130,7 +140,12 @@ fun MaintenanceScreen(
                             isOverdue = false,
                             onClick = { onTaskClick(task.id) },
                             onToggle = { onToggle(task, it) },
-                            onComplete = { onComplete(task.id) }
+                            onComplete = { onComplete(task.id) },
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = tween(180),
+                                placementSpec = tween(180),
+                                fadeOutSpec = tween(120)
+                            )
                         )
                     }
                 }
@@ -145,7 +160,12 @@ fun MaintenanceScreen(
                             isOverdue = false,
                             onClick = { onTaskClick(task.id) },
                             onToggle = { onToggle(task, it) },
-                            onComplete = null
+                            onComplete = null,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = tween(180),
+                                placementSpec = tween(180),
+                                fadeOutSpec = tween(120)
+                            )
                         )
                     }
                 }
@@ -166,12 +186,13 @@ private fun MaintenanceTaskCard(
     isOverdue: Boolean,
     onClick: () -> Unit,
     onToggle: (Boolean) -> Unit,
-    onComplete: (() -> Unit)?
+    onComplete: (() -> Unit)?,
+    modifier: Modifier = Modifier
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        modifier = modifier.fillMaxWidth().animateContentSize(),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = if (isOverdue) {
                 MaterialTheme.colorScheme.errorContainer
@@ -193,7 +214,9 @@ private fun MaintenanceTaskCard(
                     task.title,
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Surface(
                     shape = RoundedCornerShape(50),

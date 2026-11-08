@@ -1,5 +1,8 @@
 package com.example.homecaretracker.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -136,7 +139,11 @@ fun HomeCareApp(
         NavHost(
             navController = navController,
             startDestination = HomeCareDestination.HOME.route,
-            modifier = Modifier.padding(contentPadding)
+            modifier = Modifier.padding(contentPadding),
+            enterTransition = { fadeIn(tween(160)) },
+            exitTransition = { fadeOut(tween(100)) },
+            popEnterTransition = { fadeIn(tween(160)) },
+            popExitTransition = { fadeOut(tween(100)) }
         ) {
             composable(HomeCareDestination.HOME.route) {
                 HomeScreen(
